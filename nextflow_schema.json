@@ -21,6 +21,11 @@
                     "description": "Path to a fasta file with marker sequences to check for phylogenetic consistency.",
                     "fa_icon": "far fa-file-code"
                 },
+                "markername": {
+                    "type": "string",
+                    "default": "markers",
+                    "description": "Name of the marker."
+                },
                 "phylogeny": {
                     "type": "string",
                     "format": "file-path",

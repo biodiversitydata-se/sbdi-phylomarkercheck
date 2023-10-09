@@ -15,6 +15,10 @@ log.info logo + paramsSummaryLog(workflow) + citation
 
 WorkflowPhylomarkercheck.initialise(params, log)
 
+// Initialize channels from parameters
+ch_input = Channel.fromPath(params.input)
+ch_phylogeny = Channel.fromPath(params.phylogeny)
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     CONFIG FILES
@@ -41,6 +45,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // MODULE: Installed directly from nf-core/modules
 //
+include { CLUSTALO_ALIGN              } from '../modules/nf-core/clustalo/align/main'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -56,6 +61,12 @@ def multiqc_report = []
 workflow PHYLOMARKERCHECK {
 
     ch_versions = Channel.empty()
+
+    CLUSTALO_ALIGN ( 
+        ch_input.map { [ [ id: params.markername ], it ] },
+        [ [], [] ]
+    )
+    ch_versions = ch_versions.mix(CLUSTALO_ALIGN.out.versions)
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

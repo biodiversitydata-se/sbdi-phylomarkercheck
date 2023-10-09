@@ -11,7 +11,7 @@ class WorkflowPhylomarkercheck {
     // Check and validate parameters
     //
     public static void initialise(params, log) {
-
+        //System.err.println "params: ${params}"
     }
 
     //
