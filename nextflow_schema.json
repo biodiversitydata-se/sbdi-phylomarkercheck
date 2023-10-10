@@ -26,15 +26,6 @@
                     "default": "markers",
                     "description": "Name of the marker."
                 },
-                "phylogeny": {
-                    "type": "string",
-                    "format": "file-path",
-                    "exists": true,
-                    "mimetype": "text/plain",
-                    "pattern": "^\\S+\\.(newick)|(tree)$",
-                    "description": "Path to a newick file with a phylogeny to use to check consistency with.",
-                    "fa_icon": "far fa-file-code"
-                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",

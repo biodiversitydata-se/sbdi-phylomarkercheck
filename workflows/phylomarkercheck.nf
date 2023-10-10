@@ -17,7 +17,6 @@ WorkflowPhylomarkercheck.initialise(params, log)
 
 // Initialize channels from parameters
 ch_input = Channel.fromPath(params.input)
-ch_phylogeny = Channel.fromPath(params.phylogeny)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,7 +44,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { CLUSTALO_ALIGN              } from '../modules/nf-core/clustalo/align/main'
+include { EMBOSS_REVSEQ               } from '../modules/nf-core/emboss/revseq/main'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -62,11 +61,19 @@ workflow PHYLOMARKERCHECK {
 
     ch_versions = Channel.empty()
 
-    CLUSTALO_ALIGN ( 
-        ch_input.map { [ [ id: params.markername ], it ] },
-        [ [], [] ]
+    // 1. Reverse the input sequences
+    EMBOSS_REVSEQ ( 
+        ch_input.map { [ [ id: params.markername ], it ] }
     )
-    ch_versions = ch_versions.mix(CLUSTALO_ALIGN.out.versions)
+    ch_versions = ch_versions.mix(EMBOSS_REVSEQ.out.versions)
+
+    // 2. Grab the taxonomy from the unaligned fasta
+
+    // 3. Align both the standard and reverse fasta files with HMMER; filter with rfmask
+
+    // 4. Call sativa with the taxonomy and each filtered alignment
+
+    // n.
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
