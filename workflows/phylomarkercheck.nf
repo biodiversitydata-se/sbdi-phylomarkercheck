@@ -17,8 +17,10 @@ WorkflowPhylomarkercheck.initialise(params, log)
 
 // Initialize channels from parameters
 Channel.fromPath(params.input)
-    .map { [ [ id: params.markername ], it ] }
+    .map { [ [ id: "${params.markername}-fwd" ], it ] }
     .set { ch_input }
+Channel.fromPath(params.hmm)
+    .set { ch_hmm }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,9 +49,11 @@ include { EXTRACTTAXONOMY             } from '../modules/local/extracttaxonomy'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { EMBOSS_REVSEQ               } from '../modules/nf-core/emboss/revseq/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { EMBOSS_REVSEQ                 } from '../modules/nf-core/emboss/revseq/main'
+include { HMMER_HMMFETCH                } from '../modules/nf-core/hmmer/hmmfetch/main'
+include { HMMER_HMMALIGN                } from '../modules/nf-core/hmmer/hmmalign/main'
+include { MULTIQC                       } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS   } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,7 +69,7 @@ workflow PHYLOMARKERCHECK {
     ch_versions = Channel.empty()
 
     // 1. Reverse the input sequences
-    EMBOSS_REVSEQ ( ch_input )
+    EMBOSS_REVSEQ ( ch_input.map { [ [ id: "${it[0].id - ~/-fwd/}-rev" ], it[1] ] } )
     ch_versions = ch_versions.mix(EMBOSS_REVSEQ.out.versions)
 
     // 2. Extract the taxonomy from the unaligned fasta
@@ -73,6 +77,13 @@ workflow PHYLOMARKERCHECK {
     ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
 
     // 3. Align both the standard and reverse fasta files with HMMER; filter with rfmask
+    if ( params.hmmkey ) {
+        HMMER_HMMFETCH ( ch_hmm.map { [ [ id: params.hmmkey ], it ] }, Channel.of(params.hmmkey), [], [] )
+        ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
+        ch_hmm = HMMER_HMMFETCH.out.hmm.map { it[1] }
+    }
+
+    HMMER_HMMALIGN ( ch_input.mix(EMBOSS_REVSEQ.out.revseq), ch_hmm.first() )
 
     // 4. Call sativa with the taxonomy and each filtered alignment
 

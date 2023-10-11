@@ -18,8 +18,22 @@
                     "exists": true,
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.f[an]?a(sta)?(\\.gz)?$",
-                    "description": "Path to a fasta file with marker sequences to check for phylogenetic consistency.",
+                    "description": "Path to a fasta file with marker sequences to check for taxonomic consistency.",
                     "fa_icon": "far fa-file-code"
+                },
+                "hmm": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/plain",
+                    "pattern": "^\\S+\\.hmm$",
+                    "description": "Path to a HMMER hmm file to use to align sequences to.",
+                    "fa_icon": "far fa-file-code"
+                },
+                "hmmkey": {
+                    "type": "string",
+                    "default": "markers",
+                    "description": "Name of hmm to extract from multi-hmm."
                 },
                 "markername": {
                     "type": "string",
