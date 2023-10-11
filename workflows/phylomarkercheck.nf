@@ -16,7 +16,9 @@ log.info logo + paramsSummaryLog(workflow) + citation
 WorkflowPhylomarkercheck.initialise(params, log)
 
 // Initialize channels from parameters
-ch_input = Channel.fromPath(params.input)
+Channel.fromPath(params.input)
+    .map { [ [ id: params.markername ], it ] }
+    .set { ch_input }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,6 +36,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
     IMPORT LOCAL MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+include { EXTRACTTAXONOMY             } from '../modules/local/extracttaxonomy'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,12 +65,12 @@ workflow PHYLOMARKERCHECK {
     ch_versions = Channel.empty()
 
     // 1. Reverse the input sequences
-    EMBOSS_REVSEQ ( 
-        ch_input.map { [ [ id: params.markername ], it ] }
-    )
+    EMBOSS_REVSEQ ( ch_input )
     ch_versions = ch_versions.mix(EMBOSS_REVSEQ.out.versions)
 
-    // 2. Grab the taxonomy from the unaligned fasta
+    // 2. Extract the taxonomy from the unaligned fasta
+    EXTRACTTAXONOMY ( ch_input )
+    ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
 
     // 3. Align both the standard and reverse fasta files with HMMER; filter with rfmask
 
