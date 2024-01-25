@@ -40,6 +40,12 @@
                     "default": "markers",
                     "description": "Name of the marker."
                 },
+                "sativa_domain": {
+                    "type": "string",
+                    "default": "bac",
+                    "pattern": "(bac)|(bot)|(zoo)|(vir)",
+                    "description": "Argument for Sativa's -x parameter: bac, bot, zoo, vir."
+                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",

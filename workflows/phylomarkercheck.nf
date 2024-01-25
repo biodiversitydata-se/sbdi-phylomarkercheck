@@ -39,6 +39,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include { EXTRACTTAXONOMY             } from '../modules/local/extracttaxonomy'
+include { SATIVA                      } from '../modules/local/sativa'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,6 +53,9 @@ include { EXTRACTTAXONOMY             } from '../modules/local/extracttaxonomy'
 include { EMBOSS_REVSEQ                 } from '../modules/nf-core/emboss/revseq/main'
 include { HMMER_HMMFETCH                } from '../modules/nf-core/hmmer/hmmfetch/main'
 include { HMMER_HMMALIGN                } from '../modules/nf-core/hmmer/hmmalign/main'
+include { HMMER_ESLALIMASK              } from '../modules/nf-core/hmmer/eslalimask/main'
+include { HMMER_ESLREFORMAT             } from '../modules/nf-core/hmmer/eslreformat/main'
+include { GUNZIP                        } from '../modules/nf-core/gunzip/main'
 include { MULTIQC                       } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS   } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -68,24 +72,40 @@ workflow PHYLOMARKERCHECK {
 
     ch_versions = Channel.empty()
 
-    // 1. Reverse the input sequences
-    EMBOSS_REVSEQ ( ch_input.map { [ [ id: "${it[0].id - ~/-fwd/}-rev" ], it[1] ] } )
-    ch_versions = ch_versions.mix(EMBOSS_REVSEQ.out.versions)
-
-    // 2. Extract the taxonomy from the unaligned fasta
+    // 1. Extract the taxonomy from the unaligned fasta and clean up the fasta by removing the taxonomy
     EXTRACTTAXONOMY ( ch_input )
     ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
 
-    // 3. Align both the standard and reverse fasta files with HMMER; filter with rfmask
+    // 2. Reverse the input sequences
+    EMBOSS_REVSEQ ( EXTRACTTAXONOMY.out.stripped_fasta.map { [ [ id: "${it[0].id - ~/-fwd/}-rev" ], it[1] ] } )
+    ch_versions = ch_versions.mix(EMBOSS_REVSEQ.out.versions)
+
+    // 3. Align both the standard and reverse fasta files with HMMER; filter with rfmask and convert to fasta
     if ( params.hmmkey ) {
         HMMER_HMMFETCH ( ch_hmm.map { [ [ id: params.hmmkey ], it ] }, Channel.of(params.hmmkey), [], [] )
         ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
         ch_hmm = HMMER_HMMFETCH.out.hmm.map { it[1] }
     }
 
-    HMMER_HMMALIGN ( ch_input.mix(EMBOSS_REVSEQ.out.revseq), ch_hmm.first() )
+    HMMER_HMMALIGN ( EXTRACTTAXONOMY.out.stripped_fasta.mix(EMBOSS_REVSEQ.out.revseq), ch_hmm.first() )
+    ch_versions = ch_versions.mix(HMMER_HMMALIGN.out.versions)
+
+    HMMER_ESLALIMASK ( HMMER_HMMALIGN.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
+    ch_versions = ch_versions.mix(HMMER_ESLALIMASK.out.versions)
+
+    HMMER_ESLREFORMAT(HMMER_ESLALIMASK.out.maskedaln)
+    ch_versions = ch_versions.mix(HMMER_ESLREFORMAT.out.versions)
+
+    GUNZIP(HMMER_ESLREFORMAT.out.seqreformated)
+    ch_versions = ch_versions.mix(GUNZIP.out.versions)
 
     // 4. Call sativa with the taxonomy and each filtered alignment
+    GUNZIP.out.gunzip
+        .combine(EXTRACTTAXONOMY.out.taxonomy.map { it[1] })
+        .set { ch_sativa }
+
+    SATIVA(ch_sativa)
+    ch_versions = ch_versions.mix(SATIVA.out.versions)
 
     // n.
 

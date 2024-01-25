@@ -1,10 +1,10 @@
-name: hmmer_hmmalign
-description: hmmalign from the HMMER suite aligns a number of sequences to an HMM profile
+name: "hmmer_eslreformat"
+description: reformats sequence files, see HMMER documentation for details. The module requires that the format is specified in ext.args in a config file, and that this comes last. See the tools help for possible values.
 keywords:
-  - alignment
+  - sort
 tools:
-  - hmmer:
-      description: Biosequence analysis using profile hidden Markov models
+  - "hmmer":
+      description: "Biosequence analysis using profile hidden Markov models"
       homepage: http://hmmer.org/
       documentation: http://hmmer.org/documentation.html
       doi: "10.1371/journal.pcbi.1002195"
@@ -15,14 +15,10 @@ input:
       description: |
         Groovy Map containing sample information
         e.g. [ id:'test' ]
-  - fasta:
+  - seqfile:
       type: file
-      description: Amino acid or nucleotide gzipped compressed fasta file
-      pattern: "*.{fna.gz,faa.gz,fasta.gz,fa.gz}"
-  - hmm:
-      type: file
-      description: A gzipped HMM file
-      pattern: "*.hmm.gz"
+      description: Sequences, aligned or not, in any supported format
+      pattern: "*"
 output:
   - meta:
       type: map
@@ -33,13 +29,11 @@ output:
       type: file
       description: File containing software versions
       pattern: "versions.yml"
-  - sthlm:
+  - seqreformated:
       type: file
-      description: Multiple alignment in gzipped Stockholm format
-      pattern: "*.sthlm.gz"
+      description: Reformated sequence file
+      pattern: "*.*.gz"
 authors:
   - "@erikrikarddaniel"
-  - "@jfy133"
 maintainers:
   - "@erikrikarddaniel"
-  - "@jfy133"
