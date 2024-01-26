@@ -22,7 +22,7 @@ process EXTRACTTAXONOMY {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    grep '>' $fasta | sed 's/>\\([^ ]\\+\\) \\([^ ]\\+\\) .*/\\1\\t\\2/' > ${prefix}.taxonomy.tsv
+    grep '>' $fasta | sed 's/>\\([^ ]\\+\\) \\([^ ]\\+ [^ ]\\+\\) .*/\\1\\t\\2/' > ${prefix}.taxonomy.tsv
     sed '/^>/s/ .*//' $fasta > ${prefix}.fna
 
     cat <<-END_VERSIONS > versions.yml

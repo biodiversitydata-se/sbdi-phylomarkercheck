@@ -38,8 +38,10 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
     IMPORT LOCAL MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { EXTRACTTAXONOMY             } from '../modules/local/extracttaxonomy'
-include { SATIVA                      } from '../modules/local/sativa'
+include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
+include { SATIVA                        } from '../modules/local/sativa'
+include { EMITCORRECT                   } from '../modules/local/emitcorrect.nf'
+include { EXTRACTSEQNAMES               } from '../modules/local/extractseqnames'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -56,6 +58,7 @@ include { HMMER_HMMALIGN                } from '../modules/nf-core/hmmer/hmmalig
 include { HMMER_ESLALIMASK              } from '../modules/nf-core/hmmer/eslalimask/main'
 include { HMMER_ESLREFORMAT             } from '../modules/nf-core/hmmer/eslreformat/main'
 include { GUNZIP                        } from '../modules/nf-core/gunzip/main'
+include { SEQTK_SUBSEQ                  } from '../modules/nf-core/seqtk/subseq/main'
 include { MULTIQC                       } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS   } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -107,7 +110,26 @@ workflow PHYLOMARKERCHECK {
     SATIVA(ch_sativa)
     ch_versions = ch_versions.mix(SATIVA.out.versions)
 
-    // n.
+    // 5. Emit presumed correct sequences
+    Channel.of(params.n_per_species.split(','))
+        .map { n -> [ id: "${params.markername}-n${n}", n: n ] }
+        .combine(SATIVA.out.misplaced.collect { it[1] })
+        .set { ch_emitcorrect }
+
+    EMITCORRECT(ch_emitcorrect, EXTRACTTAXONOMY.out.taxonomy.map { it[1] }.first())
+    ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
+
+    EXTRACTSEQNAMES(
+        EMITCORRECT.out.correct
+            .combine(ch_input.map { it[1] })
+    )
+    ch_versions = ch_versions.mix(EXTRACTSEQNAMES.out.versions)
+
+    SEQTK_SUBSEQ(
+        ch_input.map { it[1] }.first(),
+        EXTRACTSEQNAMES.out.seqnames.map { it[1] }
+    )
+    ch_versions = ch_versions.mix(SEQTK_SUBSEQ.out.versions)
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

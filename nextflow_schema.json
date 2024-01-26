@@ -40,6 +40,11 @@
                     "default": "markers",
                     "description": "Name of the marker."
                 },
+                "n_per_species": {
+                    "type": "string",
+                    "default": "1",
+                    "description": "Comma-separated list of integers representing the number of sequences per species in sets of output sequences."
+                },
                 "sativa_domain": {
                     "type": "string",
                     "default": "bac",
