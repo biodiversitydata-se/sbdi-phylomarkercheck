@@ -33,6 +33,7 @@ process SATIVA {
         -t $taxonomy \\
         -tmpdir tmp \\
         -n ${prefix} \\
+        -T $task.cpus \\
         $args
 
     cat <<-END_VERSIONS > versions.yml
