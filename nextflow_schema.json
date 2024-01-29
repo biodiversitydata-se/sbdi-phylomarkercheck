@@ -45,6 +45,11 @@
                     "default": "1",
                     "description": "Comma-separated list of integers representing the number of sequences per species in sets of output sequences."
                 },
+                "non_gap_prop": {
+                    "type": "number",
+                    "default": 0.9,
+                    "description": "Minimum proportion of non-gap position after alignment to profile"
+                },
                 "sativa_domain": {
                     "type": "string",
                     "default": "bac",

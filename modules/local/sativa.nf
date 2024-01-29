@@ -13,10 +13,11 @@ process SATIVA {
     tuple val(meta), path(alignment), path(taxonomy)
 
     output:
+    tuple val(meta), path("*.filttax.tsv")     , emit: filtered_taxonomy
     tuple val(meta), path("*.mis")             , emit: misplaced
     tuple val(meta), path("*.log")             , emit: log
     tuple val(meta), path("*.refjson")         , emit: refjson
-    tuple val(meta), path("*.final_epa.jplace"), emit: final_epa
+    tuple val(meta), path("*.final_epa.jplace"), emit: final_epa, optional: true
     tuple val(meta), path("*.l1out_seq.jplace"), emit: l1out_seq
     path "versions.yml"                        , emit: versions
 
@@ -27,10 +28,12 @@ process SATIVA {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
+    grep -f <(grep '>' $alignment | sed 's/>//') $taxonomy > ${prefix}.filttax.tsv
+
     mkdir tmp
     sativa.py \\
         -s $alignment \\
-        -t $taxonomy \\
+        -t ${prefix}.filttax.tsv \\
         -tmpdir tmp \\
         -n ${prefix} \\
         -T $task.cpus \\

@@ -39,6 +39,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
+include { BIOPYTHON_FILTERGAPPY         } from '../modules/local/biopython/filtergappy'
 include { SATIVA                        } from '../modules/local/sativa'
 include { EMITCORRECT                   } from '../modules/local/emitcorrect.nf'
 include { EXTRACTSEQNAMES               } from '../modules/local/extractseqnames'
@@ -102,8 +103,11 @@ workflow PHYLOMARKERCHECK {
     GUNZIP(HMMER_ESLREFORMAT.out.seqreformated)
     ch_versions = ch_versions.mix(GUNZIP.out.versions)
 
+    BIOPYTHON_FILTERGAPPY(GUNZIP.out.gunzip)
+    ch_versions = ch_versions.mix(BIOPYTHON_FILTERGAPPY.out.versions)
+
     // 4. Call sativa with the taxonomy and each filtered alignment
-    GUNZIP.out.gunzip
+    BIOPYTHON_FILTERGAPPY.out.fasta
         .combine(EXTRACTTAXONOMY.out.taxonomy.map { it[1] })
         .set { ch_sativa }
 
