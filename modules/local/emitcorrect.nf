@@ -11,6 +11,7 @@ process EMITCORRECT {
     input:
     tuple val(meta), path(misplacedfwd), path(misplacedrev)
     path(taxonomy)
+    path(metadata)
 
     output:
     tuple val(meta), path("*.correct.tsv.gz"), emit: correct
@@ -37,13 +38,20 @@ process EMITCORRECT {
         distinct(seqid)
 
     taxonomy <- read_tsv('$taxonomy', col_names = c('seqid', 'taxonomy'), col_types = 'cc') %>%
-        mutate(taxonomy = str_remove_all(taxonomy, '[a-z]__')) %>%
-        separate(taxonomy, c('domain', 'phylum', 'class', 'order', 'family', 'genus', 'species'), sep = ';', remove = FALSE)
+        mutate(
+            t = str_remove_all(taxonomy, '[a-z]__'),
+            accession = str_remove(seqid, '~.*')
+        ) %>%
+        separate(t, c('domain', 'phylum', 'class', 'order', 'family', 'genus', 'species'), sep = ';')
+
+    metadata <- read_tsv('$metadata', show_col_types = FALSE) %>%
+        transmute(accession, quality = checkm_completeness - 5 * checkm_contamination)
 
     taxonomy %>%
         anti_join(misplaced, by = join_by(seqid)) %>%
+        inner_join(metadata, by = join_by(accession)) %>%
         group_by(species) %>%
-        slice_sample(n = ${meta.n}) %>%
+        slice_max(order_by = quality, n = ${meta.n}) %>%
         write_tsv("${prefix}.correct.tsv.gz")
 
     writeLines(

@@ -21,6 +21,8 @@ Channel.fromPath(params.input)
     .set { ch_input }
 Channel.fromPath(params.hmm)
     .set { ch_hmm }
+Channel.fromPath(params.gtdb_metadata)
+    .set { ch_gtdb_metadata }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -120,7 +122,7 @@ workflow PHYLOMARKERCHECK {
         .combine(SATIVA.out.misplaced.collect { it[1] })
         .set { ch_emitcorrect }
 
-    EMITCORRECT(ch_emitcorrect, EXTRACTTAXONOMY.out.taxonomy.map { it[1] }.first())
+    EMITCORRECT(ch_emitcorrect, EXTRACTTAXONOMY.out.taxonomy.map { it[1] }.first(), ch_gtdb_metadata.first())
     ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
 
     EXTRACTSEQNAMES(

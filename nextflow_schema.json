@@ -35,6 +35,15 @@
                     "default": "markers",
                     "description": "Name of hmm to extract from multi-hmm."
                 },
+                "gtdb_metadata": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/plain",
+                    "pattern": "^\\S+\\.tsv(\\.gz)?$",
+                    "description": "Path to a tsv file with taxonomy metadata containing: gtdb_taxonomy, checkm_completeness and checkm_contamination.",
+                    "fa_icon": "far fa-file-code"
+                },
                 "markername": {
                     "type": "string",
                     "default": "markers",
