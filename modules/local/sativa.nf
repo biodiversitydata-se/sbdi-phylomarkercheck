@@ -31,7 +31,7 @@ process SATIVA {
 
     if [ \$( grep -c '>' $alignment ) -gt 0 ]; then
         echo "Input not empty, running sativa"
-        grep -f <(grep '>' $alignment | sed 's/>//') $taxonomy > ${prefix}.filttax.tsv
+        grep -f <(grep '>' $alignment | sed 's/>//' | sed 's/\$/\\t/') $taxonomy > ${prefix}.filttax.tsv
         mkdir tmp
         sativa.py \\
             -s $alignment \\
