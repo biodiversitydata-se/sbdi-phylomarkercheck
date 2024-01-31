@@ -9,7 +9,7 @@ process EMITCORRECT {
         'biocontainers/mulled-v2-b2ec1fea5791d428eebb8c8ea7409c350d31dada:a447f6b7a6afde38352b24c30ae9cd6e39df95c4-1' }"
 
     input:
-    tuple val(meta), path(misplacedfwd), path(misplacedrev)
+    tuple val(meta), path(misplaced)
     path(taxonomy)
     path(metadata)
 
@@ -23,6 +23,7 @@ process EMITCORRECT {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
+
     """
     #!/usr/bin/env Rscript
 
@@ -31,8 +32,8 @@ process EMITCORRECT {
     library(tidyr)
     library(stringr)
 
-    misplaced <- read_tsv('$misplacedfwd', skip = 4, col_types = 'ccccdccc') %>%
-        union(read_tsv('$misplacedrev', skip = 4, col_types = 'ccccdccc')) %>%
+
+    misplaced <- read_tsv(c("${misplaced.join('","')}"), skip = 4, col_types = 'ccccdccc') %>%
         rename_with(str_to_lower) %>%
         rename(seqid = `;seqid`) %>%
         distinct(seqid)
@@ -44,7 +45,7 @@ process EMITCORRECT {
         ) %>%
         separate(t, c('domain', 'phylum', 'class', 'order', 'family', 'genus', 'species'), sep = ';')
 
-    metadata <- read_tsv('$metadata', show_col_types = FALSE) %>%
+    metadata <- read_tsv('$metadata', col_types = cols(checkm_completeness = col_double(), checkm_contamination = col_double(), .default = col_character())) %>%
         transmute(accession, quality = checkm_completeness - 5 * checkm_contamination)
 
     taxonomy %>%

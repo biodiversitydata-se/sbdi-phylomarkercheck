@@ -29,26 +29,24 @@ process SATIVA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
 
-    if [ \$( grep -c '>' $alignment ) -gt 0 ]; then
-        echo "Input not empty, running sativa"
-        grep -f <(grep '>' $alignment | sed 's/>//' | sed 's/\$/\\t/') $taxonomy > ${prefix}.filttax.tsv
+    #if [ \$( grep -c '>' $alignment ) -gt 0 ]; then
         mkdir tmp
         sativa.py \\
             -s $alignment \\
-            -t ${prefix}.filttax.tsv \\
+            -t ${taxonomy} \\
             -tmpdir tmp \\
             -n ${prefix} \\
             -T $task.cpus \\
             $args
-    else
-        cat <<-END_SATIVA > ${prefix}.mis
-    ;WARNING: The revised taxon name suggested here is not necessarily the one that has priority in nomenclature. 
-    ;Our suggestion should only be taken as indicative of an affiliation to the same group, whose correct name must be determined 
-    ;in an additional step according to the specific rules of nomenclature that apply to the studied organisms.
-    ;
-    ;SeqID	MislabeledLevel	OriginalLabel	ProposedLabel	Confidence	OriginalTaxonomyPath	ProposedTaxonomyPath	PerRankConfidence
-    END_SATIVA
-    fi
+    #else
+    #    cat <<-END_SATIVA > ${prefix}.mis
+    #;WARNING: The revised taxon name suggested here is not necessarily the one that has priority in nomenclature. 
+    #;Our suggestion should only be taken as indicative of an affiliation to the same group, whose correct name must be determined 
+    #;in an additional step according to the specific rules of nomenclature that apply to the studied organisms.
+    #;
+    #;SeqID	MislabeledLevel	OriginalLabel	ProposedLabel	Confidence	OriginalTaxonomyPath	ProposedTaxonomyPath	PerRankConfidence
+    #END_SATIVA
+    #fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

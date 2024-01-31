@@ -42,6 +42,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 */
 include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
 include { BIOPYTHON_FILTERGAPPY         } from '../modules/local/biopython/filtergappy'
+include { FILTERTAXONOMY                } from '../modules/local/filtertaxonomy'
 include { SATIVA                        } from '../modules/local/sativa'
 include { EMITCORRECT                   } from '../modules/local/emitcorrect.nf'
 include { EXTRACTSEQNAMES               } from '../modules/local/extractseqnames'
@@ -111,15 +112,18 @@ workflow PHYLOMARKERCHECK {
     // 4. Call sativa with the taxonomy and each filtered alignment
     BIOPYTHON_FILTERGAPPY.out.fasta
         .combine(EXTRACTTAXONOMY.out.taxonomy.map { it[1] })
-        .set { ch_sativa }
+        .set { ch_gapfiltered_taxonomy }
 
-    SATIVA(ch_sativa)
+    FILTERTAXONOMY(ch_gapfiltered_taxonomy)
+    ch_versions = ch_versions.mix(FILTERTAXONOMY.out.versions)
+
+    SATIVA(FILTERTAXONOMY.out.filtered)
     ch_versions = ch_versions.mix(SATIVA.out.versions)
 
     // 5. Emit presumed correct sequences
     Channel.of(params.n_per_species.split(','))
         .map { n -> [ id: "${params.markername}-n${n}", n: n ] }
-        .combine(SATIVA.out.misplaced.collect { it[1] })
+        .combine(SATIVA.out.misplaced.collect { it[1] }.map { [ it ] })
         .set { ch_emitcorrect }
 
     EMITCORRECT(ch_emitcorrect, EXTRACTTAXONOMY.out.taxonomy.map { it[1] }.first(), ch_gtdb_metadata.first())
