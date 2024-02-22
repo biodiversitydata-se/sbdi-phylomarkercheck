@@ -40,6 +40,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
     IMPORT LOCAL MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+include { BIOPYTHON_REMOVEN             } from '../modules/local/biopython/removen'
 include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
 include { BIOPYTHON_FILTERGAPPY         } from '../modules/local/biopython/filtergappy'
 include { FILTERTAXONOMY                } from '../modules/local/filtertaxonomy'
@@ -84,7 +85,10 @@ workflow PHYLOMARKERCHECK {
     MAXLEN ( ch_input )
     ch_versions = ch_versions.mix(MAXLEN.out.versions)
 
-    ch_correct_sequences = MAXLEN.out.fastx
+    BIOPYTHON_REMOVEN ( MAXLEN.out.fastx )
+    ch_versions = ch_versions.mix(BIOPYTHON_REMOVEN.out.versions)
+
+    ch_correct_sequences = BIOPYTHON_REMOVEN.out.fasta
 
     // 1. Extract the taxonomy from the unaligned fasta and clean up the fasta by removing the taxonomy
     EXTRACTTAXONOMY ( ch_correct_sequences )

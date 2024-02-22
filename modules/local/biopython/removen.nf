@@ -1,5 +1,4 @@
-
-process BIOPYTHON_FILTERGAPPY {
+process BIOPYTHON_REMOVEN {
     tag "$meta.id"
     label 'process_single'
 
@@ -12,8 +11,8 @@ process BIOPYTHON_FILTERGAPPY {
     tuple val(meta), path(fasta)
 
     output:
-    tuple val(meta), path("*.gapfiltered.fna"), emit: fasta
-    path "versions.yml"                     , emit: versions
+    tuple val(meta), path("*.non.fna"), emit: fasta
+    path "versions.yml"               , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -29,26 +28,10 @@ process BIOPYTHON_FILTERGAPPY {
     import Bio
     from Bio import SeqIO
 
-    input    = open("$fasta", "r")
-    output   = open("${prefix}.gapfiltered.fna", "w")
-
-    drop_cutoff = 1 - float($args)
-
-    for seqs in SeqIO.parse(input, 'fasta'):
-        name = seqs.id
-        seq  = seqs.seq
-
-        seqlen = len(seq)
-        gapc   = 0
-
-        for i in range(seqlen):
-            if seqs[i] == '-':
-                gapc += 1
-
-        if ( gapc/float(seqlen) <= drop_cutoff ):
-            SeqIO.write(seqs, output, 'fasta')
-
-    input.close()
+    output = open("${prefix}.non.fna", "w")
+    for record in SeqIO.parse("$fasta", "fasta"):
+        if record.seq.count('N') == 0:
+            output.write(record.format("fasta"))
     output.close()
 
     versions = open("versions.yml", "w")
