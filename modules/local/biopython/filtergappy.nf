@@ -1,4 +1,3 @@
-
 process BIOPYTHON_FILTERGAPPY {
     tag "$meta.id"
     label 'process_single'
