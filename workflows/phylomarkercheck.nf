@@ -56,6 +56,7 @@ include { EXTRACTSEQNAMES               } from '../modules/local/extractseqnames
 //
 // MODULE: Installed directly from nf-core/modules
 //
+include { SEQKIT_SEQ as MAXLEN          } from '../modules/nf-core/seqkit/seq/main'
 include { EMBOSS_REVSEQ                 } from '../modules/nf-core/emboss/revseq/main'
 include { HMMER_HMMFETCH                } from '../modules/nf-core/hmmer/hmmfetch/main'
 include { HMMER_HMMALIGN                } from '../modules/nf-core/hmmer/hmmalign/main'
@@ -79,8 +80,14 @@ workflow PHYLOMARKERCHECK {
 
     ch_versions = Channel.empty()
 
+    // 0. Remove sequences that are too long or contain Ns
+    MAXLEN ( ch_input )
+    ch_versions = ch_versions.mix(MAXLEN.out.versions)
+
+    ch_correct_sequences = MAXLEN.out.fastx
+
     // 1. Extract the taxonomy from the unaligned fasta and clean up the fasta by removing the taxonomy
-    EXTRACTTAXONOMY ( ch_input )
+    EXTRACTTAXONOMY ( ch_correct_sequences )
     ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
 
     // 2. Reverse the input sequences
@@ -131,12 +138,12 @@ workflow PHYLOMARKERCHECK {
 
     EXTRACTSEQNAMES(
         EMITCORRECT.out.correct
-            .combine(ch_input.map { it[1] })
+            .combine(ch_correct_sequences.map { it[1] })
     )
     ch_versions = ch_versions.mix(EXTRACTSEQNAMES.out.versions)
 
     SEQTK_SUBSEQ(
-        ch_input.map { it[1] }.first(),
+        ch_correct_sequences.map { it[1] }.first(),
         EXTRACTSEQNAMES.out.seqnames.map { it[1] }
     )
     ch_versions = ch_versions.mix(SEQTK_SUBSEQ.out.versions)

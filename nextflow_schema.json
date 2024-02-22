@@ -54,6 +54,11 @@
                     "default": "1",
                     "description": "Comma-separated list of integers representing the number of sequences per species in sets of output sequences."
                 },
+                "maxlen": {
+                    "type": "integer",
+                    "default": 2000,
+                    "description": "Maximum sequence length to include"
+                },
                 "non_gap_prop": {
                     "type": "number",
                     "default": 0.9,

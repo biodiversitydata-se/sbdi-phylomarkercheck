@@ -50,6 +50,11 @@
                         "git_sha": "8ec825f465b9c17f9d83000022995b4f7de6fe93",
                         "installed_by": ["modules"]
                     },
+                    "seqkit/seq": {
+                        "branch": "master",
+                        "git_sha": "687ad41c14008d3d55cf7c2ffacebe6a057211a4",
+                        "installed_by": ["modules"]
+                    },
                     "seqtk/subseq": {
                         "branch": "master",
                         "git_sha": "3f5420aa22e00bd030a2556dfdffc9e164ec0ec5",
