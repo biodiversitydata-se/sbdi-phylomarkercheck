@@ -43,6 +43,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 include { BIOPYTHON_REMOVEN             } from '../modules/local/biopython/removen'
 include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
 include { BIOSTRINGS_FILTERGAPPY        } from '../modules/local/biostrings/filtergappy'
+include { GAWK_FASTA2TSV                } from '../modules/local/gawk/fasta2tsv'
 include { FILTERTAXONOMY                } from '../modules/local/filtertaxonomy'
 include { SATIVA                        } from '../modules/local/sativa'
 include { EMITCORRECT                   } from '../modules/local/emitcorrect.nf'
@@ -114,6 +115,10 @@ workflow PHYLOMARKERCHECK {
     HMMER_ESLREFORMAT(HMMER_ESLALIMASK.out.maskedaln)
     ch_versions = ch_versions.mix(HMMER_ESLREFORMAT.out.versions)
 
+    GAWK_FASTA2TSV(HMMER_ESLREFORMAT.out.seqreformated)
+    ch_versions = ch_versions.mix(GAWK_ESLREFORMAT.out.versions)
+
+    /**
     GUNZIP(HMMER_ESLREFORMAT.out.seqreformated)
     ch_versions = ch_versions.mix(GUNZIP.out.versions)
 
@@ -177,6 +182,7 @@ workflow PHYLOMARKERCHECK {
         ch_multiqc_logo.toList()
     )
     multiqc_report = MULTIQC.out.report.toList()
+    **/
 }
 
 /*
