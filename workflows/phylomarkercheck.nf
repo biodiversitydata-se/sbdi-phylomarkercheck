@@ -42,8 +42,8 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 */
 include { BIOPYTHON_REMOVEN             } from '../modules/local/biopython/removen'
 include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
-include { BIOSTRINGS_FILTERGAPPY        } from '../modules/local/biostrings/filtergappy'
-include { GAWK_FASTA2TSV                } from '../modules/local/gawk/fasta2tsv'
+include { FILTERGAPPY                   } from '../modules/local/filtergappy'
+include { FASTA2TSV                     } from '../modules/local/fasta2tsv'
 include { FILTERTAXONOMY                } from '../modules/local/filtertaxonomy'
 include { SATIVA                        } from '../modules/local/sativa'
 include { EMITCORRECT                   } from '../modules/local/emitcorrect.nf'
@@ -115,18 +115,14 @@ workflow PHYLOMARKERCHECK {
     HMMER_ESLREFORMAT(HMMER_ESLALIMASK.out.maskedaln)
     ch_versions = ch_versions.mix(HMMER_ESLREFORMAT.out.versions)
 
-    GAWK_FASTA2TSV(HMMER_ESLREFORMAT.out.seqreformated)
-    ch_versions = ch_versions.mix(GAWK_ESLREFORMAT.out.versions)
+    FASTA2TSV(HMMER_ESLREFORMAT.out.seqreformated)
+    ch_versions = ch_versions.mix(FASTA2TSV.out.versions)
 
-    /**
-    GUNZIP(HMMER_ESLREFORMAT.out.seqreformated)
-    ch_versions = ch_versions.mix(GUNZIP.out.versions)
-
-    BIOSTRINGS_FILTERGAPPY(GUNZIP.out.gunzip)
-    ch_versions = ch_versions.mix(BIOSTRINGS_FILTERGAPPY.out.versions)
+    FILTERGAPPY(FASTA2TSV.out.tsv, ch_gtdb_metadata.first())
+    ch_versions = ch_versions.mix(FILTERGAPPY.out.versions)
 
     // 4. Call sativa with the taxonomy and each filtered alignment
-    BIOSTRINGS_FILTERGAPPY.out.fasta
+    FILTERGAPPY.out.fasta
         .combine(EXTRACTTAXONOMY.out.taxonomy.map { it[1] })
         .set { ch_gapfiltered_taxonomy }
 
@@ -182,7 +178,6 @@ workflow PHYLOMARKERCHECK {
         ch_multiqc_logo.toList()
     )
     multiqc_report = MULTIQC.out.report.toList()
-    **/
 }
 
 /*
