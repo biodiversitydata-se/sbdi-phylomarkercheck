@@ -138,8 +138,8 @@ workflow PHYLOMARKERCHECK {
         .combine(SATIVA.out.misplaced.collect { it[1] }.map { [ it ] })
         .set { ch_emitcorrect }
 
-    EMITCORRECT(ch_emitcorrect, EXTRACTTAXONOMY.out.taxonomy.map { it[1] }.first(), ch_gtdb_metadata.first())
-    ch_versions = ch_versions.mix(EXTRACTTAXONOMY.out.versions)
+    EMITCORRECT(ch_emitcorrect, FILTERTAXONOMY.out.filtered.map { it[2] }.first(), ch_gtdb_metadata.first())
+    ch_versions = ch_versions.mix(EMITCORRECT.out.versions)
 
     EXTRACTSEQNAMES(
         EMITCORRECT.out.correct
