@@ -59,7 +59,7 @@
                 },
                 "model": {
                     "type": "string",
-                    "default": "GTR+F+I",
+                    "default": "GTR+F+G+I",
                     "description": "Evolutionary model to use for branch length optimization of input tree."
                 },
                 "n_per_species": {
