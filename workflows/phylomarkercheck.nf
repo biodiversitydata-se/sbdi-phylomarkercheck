@@ -23,6 +23,10 @@ Channel.fromPath(params.hmm)
     .set { ch_hmm }
 Channel.fromPath(params.gtdb_metadata)
     .set { ch_gtdb_metadata }
+if ( params.phylogeny ) {
+    Channel.fromPath(params.phylogeny)
+        .set { ch_phylogeny }
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,14 +44,16 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
     IMPORT LOCAL MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { BIOPYTHON_REMOVEN             } from '../modules/local/biopython/removen'
-include { EXTRACTTAXONOMY               } from '../modules/local/extracttaxonomy'
-include { FILTERGAPPY                   } from '../modules/local/filtergappy'
-include { FASTA2TSV                     } from '../modules/local/fasta2tsv'
-include { FILTERTAXONOMY                } from '../modules/local/filtertaxonomy'
-include { SATIVA                        } from '../modules/local/sativa'
-include { EMITCORRECT                   } from '../modules/local/emitcorrect.nf'
-include { EXTRACTSEQNAMES               } from '../modules/local/extractseqnames'
+include { BIOPYTHON_REMOVEN                     } from '../modules/local/biopython/removen'
+include { EXTRACTTAXONOMY                       } from '../modules/local/extracttaxonomy'
+include { FILTERGAPPY                           } from '../modules/local/filtergappy'
+include { FASTA2TSV as ALIGNED2TSV              } from '../modules/local/fasta2tsv'
+include { FASTA2TSV as SELECTED2TSV             } from '../modules/local/fasta2tsv'
+include { FILTERTAXONOMY                        } from '../modules/local/filtertaxonomy'
+include { SATIVA                                } from '../modules/local/sativa'
+include { EMITCORRECT                           } from '../modules/local/emitcorrect.nf'
+include { EXTRACTSEQNAMES                       } from '../modules/local/extractseqnames'
+include { SUBSETTREE                            } from '../modules/local/subsettree'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,16 +64,17 @@ include { EXTRACTSEQNAMES               } from '../modules/local/extractseqnames
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { SEQKIT_SEQ as MAXLEN          } from '../modules/nf-core/seqkit/seq/main'
-include { EMBOSS_REVSEQ                 } from '../modules/nf-core/emboss/revseq/main'
-include { HMMER_HMMFETCH                } from '../modules/nf-core/hmmer/hmmfetch/main'
-include { HMMER_HMMALIGN                } from '../modules/nf-core/hmmer/hmmalign/main'
-include { HMMER_ESLALIMASK              } from '../modules/nf-core/hmmer/eslalimask/main'
-include { HMMER_ESLREFORMAT             } from '../modules/nf-core/hmmer/eslreformat/main'
-include { GUNZIP                        } from '../modules/nf-core/gunzip/main'
-include { SEQTK_SUBSEQ                  } from '../modules/nf-core/seqtk/subseq/main'
-include { MULTIQC                       } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS   } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { SEQKIT_SEQ as MAXLEN                  } from '../modules/nf-core/seqkit/seq/main'
+include { EMBOSS_REVSEQ                         } from '../modules/nf-core/emboss/revseq/main'
+include { HMMER_HMMFETCH                        } from '../modules/nf-core/hmmer/hmmfetch/main'
+include { HMMER_HMMALIGN as ALIGNINPUT          } from '../modules/nf-core/hmmer/hmmalign/main'
+include { HMMER_HMMALIGN as ALIGNSELECTED       } from '../modules/nf-core/hmmer/hmmalign/main'
+include { HMMER_ESLALIMASK                      } from '../modules/nf-core/hmmer/eslalimask/main'
+include { HMMER_ESLREFORMAT                     } from '../modules/nf-core/hmmer/eslreformat/main'
+include { GUNZIP                                } from '../modules/nf-core/gunzip/main'
+include { SEQTK_SUBSEQ                          } from '../modules/nf-core/seqtk/subseq/main'
+include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS           } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,19 +113,19 @@ workflow PHYLOMARKERCHECK {
         ch_hmm = HMMER_HMMFETCH.out.hmm.map { it[1] }
     }
 
-    HMMER_HMMALIGN ( EXTRACTTAXONOMY.out.stripped_fasta.mix(EMBOSS_REVSEQ.out.revseq), ch_hmm.first() )
-    ch_versions = ch_versions.mix(HMMER_HMMALIGN.out.versions)
+    ALIGNINPUT ( EXTRACTTAXONOMY.out.stripped_fasta.mix(EMBOSS_REVSEQ.out.revseq), ch_hmm.first() )
+    ch_versions = ch_versions.mix(ALIGNINPUT.out.versions)
 
-    HMMER_ESLALIMASK ( HMMER_HMMALIGN.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
+    HMMER_ESLALIMASK ( ALIGNINPUT.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
     ch_versions = ch_versions.mix(HMMER_ESLALIMASK.out.versions)
 
     HMMER_ESLREFORMAT(HMMER_ESLALIMASK.out.maskedaln)
     ch_versions = ch_versions.mix(HMMER_ESLREFORMAT.out.versions)
 
-    FASTA2TSV(HMMER_ESLREFORMAT.out.seqreformated)
-    ch_versions = ch_versions.mix(FASTA2TSV.out.versions)
+    ALIGNED2TSV(HMMER_ESLREFORMAT.out.seqreformated)
+    ch_versions = ch_versions.mix(ALIGNED2TSV.out.versions)
 
-    FILTERGAPPY(FASTA2TSV.out.tsv, ch_gtdb_metadata.first())
+    FILTERGAPPY(ALIGNED2TSV.out.tsv, ch_gtdb_metadata.first())
     ch_versions = ch_versions.mix(FILTERGAPPY.out.versions)
 
     // 4. Call sativa with the taxonomy and each filtered alignment
@@ -147,11 +154,18 @@ workflow PHYLOMARKERCHECK {
     )
     ch_versions = ch_versions.mix(EXTRACTSEQNAMES.out.versions)
 
+
     SEQTK_SUBSEQ(
-        ch_correct_sequences.map { it[1] }.first(),
-        EXTRACTSEQNAMES.out.seqnames.map { it[1] }
+        ch_correct_sequences.first().map { it[1] },
+        EXTRACTSEQNAMES.out.seqnames
     )
     ch_versions = ch_versions.mix(SEQTK_SUBSEQ.out.versions)
+
+    // 6. Subset and reoptimize tree
+    if ( params.phylogeny ) {
+        ALIGNSELECTED(SEQTK_SUBSEQ.out.sequences, ch_hmm.first())
+        ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
+    }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

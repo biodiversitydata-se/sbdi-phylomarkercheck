@@ -44,6 +44,14 @@
                     "description": "Path to a tsv file with taxonomy metadata containing: gtdb_taxonomy, checkm_completeness and checkm_contamination.",
                     "fa_icon": "far fa-file-code"
                 },
+                "phylogeny": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/plain",
+                    "description": "Path to a GTDB tree file.",
+                    "fa_icon": "far fa-file-code"
+                },
                 "markername": {
                     "type": "string",
                     "default": "markers",

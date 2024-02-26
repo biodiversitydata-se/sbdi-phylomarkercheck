@@ -9,11 +9,11 @@ process SEQTK_SUBSEQ {
 
     input:
     path sequences
-    path filter_list
+    tuple val(meta), path(filter_list)
 
     output:
-    path "*.gz"         , emit: sequences
-    path "versions.yml" , emit: versions
+    tuple val(meta), path("*.gz"), emit: sequences
+    path "versions.yml"          , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
