@@ -69,8 +69,10 @@ include { EMBOSS_REVSEQ                         } from '../modules/nf-core/embos
 include { HMMER_HMMFETCH                        } from '../modules/nf-core/hmmer/hmmfetch/main'
 include { HMMER_HMMALIGN as ALIGNINPUT          } from '../modules/nf-core/hmmer/hmmalign/main'
 include { HMMER_HMMALIGN as ALIGNSELECTED       } from '../modules/nf-core/hmmer/hmmalign/main'
-include { HMMER_ESLALIMASK                      } from '../modules/nf-core/hmmer/eslalimask/main'
-include { HMMER_ESLREFORMAT                     } from '../modules/nf-core/hmmer/eslreformat/main'
+include { HMMER_ESLALIMASK as MASKINPUT         } from '../modules/nf-core/hmmer/eslalimask/main'
+include { HMMER_ESLALIMASK as MASKSELECTED      } from '../modules/nf-core/hmmer/eslalimask/main'
+include { HMMER_ESLREFORMAT as REFORMATINPUT    } from '../modules/nf-core/hmmer/eslreformat/main'
+include { HMMER_ESLREFORMAT as REFORMATSELECTED } from '../modules/nf-core/hmmer/eslreformat/main'
 include { GUNZIP                                } from '../modules/nf-core/gunzip/main'
 include { SEQTK_SUBSEQ                          } from '../modules/nf-core/seqtk/subseq/main'
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
@@ -116,13 +118,13 @@ workflow PHYLOMARKERCHECK {
     ALIGNINPUT ( EXTRACTTAXONOMY.out.stripped_fasta.mix(EMBOSS_REVSEQ.out.revseq), ch_hmm.first() )
     ch_versions = ch_versions.mix(ALIGNINPUT.out.versions)
 
-    HMMER_ESLALIMASK ( ALIGNINPUT.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
-    ch_versions = ch_versions.mix(HMMER_ESLALIMASK.out.versions)
+    MASKINPUT ( ALIGNINPUT.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
+    ch_versions = ch_versions.mix(MASKINPUT.out.versions)
 
-    HMMER_ESLREFORMAT(HMMER_ESLALIMASK.out.maskedaln)
-    ch_versions = ch_versions.mix(HMMER_ESLREFORMAT.out.versions)
+    REFORMATINPUT(MASKINPUT.out.maskedaln)
+    ch_versions = ch_versions.mix(REFORMATINPUT.out.versions)
 
-    ALIGNED2TSV(HMMER_ESLREFORMAT.out.seqreformated)
+    ALIGNED2TSV(REFORMATINPUT.out.seqreformated)
     ch_versions = ch_versions.mix(ALIGNED2TSV.out.versions)
 
     FILTERGAPPY(ALIGNED2TSV.out.tsv, ch_gtdb_metadata.first())
@@ -162,11 +164,17 @@ workflow PHYLOMARKERCHECK {
 
     // 6. Subset and reoptimize tree
     if ( params.phylogeny ) {
+        SUBSETTREE(EXTRACTSEQNAMES.out.seqnames, ch_phylogeny.first())
+        ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
+
         ALIGNSELECTED(SEQTK_SUBSEQ.out.sequences, ch_hmm.first())
         ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
 
-        SUBSETTREE(EXTRACTSEQNAMES.out.seqnames, ch_phylogeny.first())
-        ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
+        MASKSELECTED ( ALIGNSELECTED.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
+        ch_versions = ch_versions.mix(MASKSELECTED.out.versions)
+
+        REFORMATSELECTED(MASKSELECTED.out.maskedaln)
+        ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
     }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
