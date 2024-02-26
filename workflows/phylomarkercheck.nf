@@ -152,8 +152,7 @@ workflow PHYLOMARKERCHECK {
         EMITCORRECT.out.correct
             .combine(ch_correct_sequences.map { it[1] })
     )
-    ch_versions = ch_versions.mix(EXTRACTSEQNAMES.out.versions)
-
+    ch_versions = ch_versions.mix(EXTRACTSEQNAMES.out.versions) 
 
     SEQTK_SUBSEQ(
         ch_correct_sequences.first().map { it[1] },
@@ -165,6 +164,9 @@ workflow PHYLOMARKERCHECK {
     if ( params.phylogeny ) {
         ALIGNSELECTED(SEQTK_SUBSEQ.out.sequences, ch_hmm.first())
         ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
+
+        SUBSETTREE(EXTRACTSEQNAMES.out.seqnames, ch_phylogeny.first())
+        ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
     }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
