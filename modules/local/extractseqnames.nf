@@ -5,8 +5,8 @@ process EXTRACTSEQNAMES {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/sed:4.2.3.dev0--0':
-        'biocontainers/sed:4.2.3.dev0--0' }"
+        'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
+        'nf-core/ubuntu:20.04' }"
 
     input:
     tuple val(meta), path(seqtsv), path(fasta)
@@ -22,12 +22,15 @@ process EXTRACTSEQNAMES {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    grep -f <(gunzip -c $seqtsv | cut -f 1) $fasta | sed 's/^>//' > ${prefix}.correct.seqnames
+    zgrep -v '^seqid' ${seqtsv} | \\
+        cut -f 1 | \\
+        sort | \\
+        join -t\$'\\t' - <(grep '>' ${fasta} | sed 's/>//' | sed 's/\\([^ ]\\+\\) .*/\\1\\t&/' | sort) | \\
+        cut -f 2 > ${prefix}.correct.seqnames
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        GNU sed: \$(echo \$(sed --version | grep '^sed') | sed 's/sed (GNU sed)//')
-        GNU grep: \$(grep --version | sed 's/grep (GNU grep) //')
+        join: \$(join --version | grep '^join' | sed 's/join (GNU coreutils) //')
     END_VERSIONS
     """
 }
