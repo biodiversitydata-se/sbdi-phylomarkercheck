@@ -11,8 +11,10 @@ process IQTREE_OPTIMIZE {
     tuple val(meta), path(aln), path(tree)
 
     output:
-    tuple val(meta), path("*.brlenopt.tree"), emit: phylo
-    path "versions.yml"                     , emit: versions
+    tuple val(meta), path("*.brlenopt.treefile"), emit: phylo
+    tuple val(meta), path("*.brlenopt.iqtree")  , emit: iqtree
+    tuple val(meta), path("*.brlenopt.log")     , emit: log
+    path "versions.yml"                         , emit: versions
 
     when:
     task.ext.when == null || task.ext.when

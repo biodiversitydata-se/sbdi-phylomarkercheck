@@ -60,6 +60,7 @@ include { SATIVA                                } from '../modules/local/sativa'
 include { EMITCORRECT                           } from '../modules/local/emitcorrect.nf'
 include { EXTRACTSEQNAMES                       } from '../modules/local/extractseqnames'
 include { SUBSETTREE                            } from '../modules/local/subsettree'
+include { GTDBFIXNAMES                          } from '../modules/local/gtdbfixnames'
 include { IQTREE_OPTIMIZE                       } from '../modules/local/iqtree/optimize'
 
 /*
@@ -183,16 +184,16 @@ workflow PHYLOMARKERCHECK {
         REFORMATSELECTED(MASKSELECTED.out.maskedaln)
         ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
 
-        /**
-        REFORMATSELECTED.out.seqreformated
-            .merge(SUBSETTREE.out.phylo)
-            .map { [ [ it[0] ], it[1], it[3] ] }
+        GTDBFIXNAMES(REFORMATSELECTED.out.seqreformated)
+        ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
+
+        GTDBFIXNAMES.out.fasta
+            .join(SUBSETTREE.out.phylo)
+            //.map { [ [ it[0] ], it[1], it[3] ] }
             .set { ch_aln_tree }
 
-        ch_aln_tree.view()
         IQTREE_OPTIMIZE(ch_aln_tree)
         ch_versions = ch_versions.mix(IQTREE_OPTIMIZE.out.versions)
-        **/
     }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
