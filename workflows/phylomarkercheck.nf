@@ -23,9 +23,15 @@ Channel.fromPath(params.hmm)
     .set { ch_hmm }
 Channel.fromPath(params.gtdb_metadata)
     .set { ch_gtdb_metadata }
+Channel.of(params.n_per_species.split(','))
+    .set { ch_n_per_species }
 if ( params.phylogeny ) {
     Channel.fromPath(params.phylogeny)
         .set { ch_phylogeny }
+    // Make sure 1 is in ch_n_per_species
+    ch_n_per_species
+        .concat(Channel.of(1))
+        .unique()
 }
 
 /*
@@ -54,6 +60,7 @@ include { SATIVA                                } from '../modules/local/sativa'
 include { EMITCORRECT                           } from '../modules/local/emitcorrect.nf'
 include { EXTRACTSEQNAMES                       } from '../modules/local/extractseqnames'
 include { SUBSETTREE                            } from '../modules/local/subsettree'
+include { IQTREE_OPTIMIZE                       } from '../modules/local/iqtree/optimize'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,7 +149,7 @@ workflow PHYLOMARKERCHECK {
     ch_versions = ch_versions.mix(SATIVA.out.versions)
 
     // 5. Emit presumed correct sequences
-    Channel.of(params.n_per_species.split(','))
+    ch_n_per_species
         .map { n -> [ id: "${params.markername}-n${n}", n: n ] }
         .combine(SATIVA.out.misplaced.collect { it[1] }.map { [ it ] })
         .set { ch_emitcorrect }
@@ -164,17 +171,28 @@ workflow PHYLOMARKERCHECK {
 
     // 6. Subset and reoptimize tree
     if ( params.phylogeny ) {
-        SUBSETTREE(EXTRACTSEQNAMES.out.seqnames, ch_phylogeny.first())
+        SUBSETTREE(EXTRACTSEQNAMES.out.seqnames.filter { it[0].n == '1' }, ch_phylogeny.first())
         ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
 
-        ALIGNSELECTED(SEQTK_SUBSEQ.out.sequences, ch_hmm.first())
+        ALIGNSELECTED(SEQTK_SUBSEQ.out.sequences.filter { it[0].n == '1' }, ch_hmm.first())
         ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
 
-        MASKSELECTED ( ALIGNSELECTED.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [] )
+        MASKSELECTED(ALIGNSELECTED.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [])
         ch_versions = ch_versions.mix(MASKSELECTED.out.versions)
 
         REFORMATSELECTED(MASKSELECTED.out.maskedaln)
         ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
+
+        /**
+        REFORMATSELECTED.out.seqreformated
+            .merge(SUBSETTREE.out.phylo)
+            .map { [ [ it[0] ], it[1], it[3] ] }
+            .set { ch_aln_tree }
+
+        ch_aln_tree.view()
+        IQTREE_OPTIMIZE(ch_aln_tree)
+        ch_versions = ch_versions.mix(IQTREE_OPTIMIZE.out.versions)
+        **/
     }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (

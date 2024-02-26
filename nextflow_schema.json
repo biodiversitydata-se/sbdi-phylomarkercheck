@@ -57,6 +57,11 @@
                     "default": "markers",
                     "description": "Name of the marker."
                 },
+                "model": {
+                    "type": "string",
+                    "default": "GTR+F+I",
+                    "description": "Evolutionary model to use for branch length optimization of input tree."
+                },
                 "n_per_species": {
                     "type": "string",
                     "default": "1",
