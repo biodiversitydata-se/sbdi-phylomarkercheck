@@ -216,17 +216,6 @@ workflow PHYLOMARKERCHECK {
         
         SUBSETTREE(UNIQSEQUENCES.out.names, ch_phylogeny.first())
         ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
-        /**
-
-        ALIGNSELECTED(UNIQSEQUENCES.out.fasta, ch_hmm.first())
-        ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
-
-        MASKSELECTED(ALIGNSELECTED.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [])
-        ch_versions = ch_versions.mix(MASKSELECTED.out.versions)
-
-        REFORMATSELECTED(MASKSELECTED.out.maskedaln)
-        ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
-        **/
 
         GTDBFIXNAMES(UNIQSEQUENCES.out.fasta)
         ch_versions = ch_versions.mix(GTDBFIXNAMES.out.versions)
