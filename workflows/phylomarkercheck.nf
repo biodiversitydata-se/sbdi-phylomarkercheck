@@ -55,10 +55,12 @@ include { EXTRACTTAXONOMY                       } from '../modules/local/extract
 include { FILTERGAPPY                           } from '../modules/local/filtergappy'
 include { FASTA2TSV as ALIGNED2TSV              } from '../modules/local/fasta2tsv'
 include { FASTA2TSV as SELECTED2TSV             } from '../modules/local/fasta2tsv'
+include { FASTA2TSV as N1SPREP2TSV              } from '../modules/local/fasta2tsv'
 include { FILTERTAXONOMY                        } from '../modules/local/filtertaxonomy'
 include { SATIVA                                } from '../modules/local/sativa'
 include { EMITCORRECT                           } from '../modules/local/emitcorrect.nf'
 include { EXTRACTSEQNAMES                       } from '../modules/local/extractseqnames'
+include { UNIQSEQUENCES                         } from '../modules/local/uniqsequences'
 include { SUBSETTREE                            } from '../modules/local/subsettree'
 include { GTDBFIXNAMES                          } from '../modules/local/gtdbfixnames'
 include { IQTREE_OPTIMIZE                       } from '../modules/local/iqtree/optimize'
@@ -84,6 +86,7 @@ include { HMMER_ESLREFORMAT as REFORMATSELECTED } from '../modules/nf-core/hmmer
 include { GUNZIP                                } from '../modules/nf-core/gunzip/main'
 include { SEQTK_SUBSEQ as SUBSEQ_SETS           } from '../modules/nf-core/seqtk/subseq/main'
 include { SEQTK_SUBSEQ as SUBSEQ_N1SPREPS       } from '../modules/nf-core/seqtk/subseq/main'
+include { CAT_CAT                               } from '../modules/nf-core/cat/cat/main'
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS           } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -177,6 +180,7 @@ workflow PHYLOMARKERCHECK {
         // the n1 set for the phylogeny.
         ch_gtdb_metadata
             .splitCsv(header: true, sep: '\t')
+            .filter { it.gtdb_representative == 't' }
             .map { [ it.accession ] }
             .join(
                 EXTRACTSEQNAMES.out.seqnames
@@ -189,17 +193,32 @@ workflow PHYLOMARKERCHECK {
             .collectFile(name: "${params.markername}.n1sprep.tsv", newLine: true)
             .map { [ [ id: "${params.markername}-sprep" ], it ] }
             .set { ch_sprep_names }
-        
-        SUBSETTREE(ch_sprep_names, ch_phylogeny.first())
-        ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
+
+        // We need a file with non-gappy sequences, i.e. aligned on the correct strand
+        CAT_CAT(
+            FILTERGAPPY.out.fasta
+                .map { it[1] }
+                .collect()
+                .map{ [ [ id: "${params.markername}.correct" ], it ] })
+        ch_versions = ch_versions.mix(CAT_CAT.out.versions)
 
         SUBSEQ_N1SPREPS(
-            ch_correct_sequences.first().map { it[1] },
+            CAT_CAT.out.file_out.map { it[1] },
             ch_sprep_names
         )
         ch_versions = ch_versions.mix(SUBSEQ_N1SPREPS.out.versions)
 
-        ALIGNSELECTED(SUBSEQ_N1SPREPS.out.sequences, ch_hmm.first())
+        N1SPREP2TSV(SUBSEQ_N1SPREPS.out.sequences)
+        ch_versions = ch_versions.mix(N1SPREP2TSV.out.versions)
+
+        UNIQSEQUENCES(N1SPREP2TSV.out.tsv)
+        ch_versions = ch_versions.mix(UNIQSEQUENCES.out.versions)
+        
+        SUBSETTREE(UNIQSEQUENCES.out.names, ch_phylogeny.first())
+        ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
+        /**
+
+        ALIGNSELECTED(UNIQSEQUENCES.out.fasta, ch_hmm.first())
         ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
 
         MASKSELECTED(ALIGNSELECTED.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [])
@@ -207,9 +226,10 @@ workflow PHYLOMARKERCHECK {
 
         REFORMATSELECTED(MASKSELECTED.out.maskedaln)
         ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
+        **/
 
-        GTDBFIXNAMES(REFORMATSELECTED.out.seqreformated)
-        ch_versions = ch_versions.mix(REFORMATSELECTED.out.versions)
+        GTDBFIXNAMES(UNIQSEQUENCES.out.fasta)
+        ch_versions = ch_versions.mix(GTDBFIXNAMES.out.versions)
 
         GTDBFIXNAMES.out.fasta
             .join(SUBSETTREE.out.phylo)
