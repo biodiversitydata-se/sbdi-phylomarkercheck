@@ -82,7 +82,8 @@ include { HMMER_ESLALIMASK as MASKSELECTED      } from '../modules/nf-core/hmmer
 include { HMMER_ESLREFORMAT as REFORMATINPUT    } from '../modules/nf-core/hmmer/eslreformat/main'
 include { HMMER_ESLREFORMAT as REFORMATSELECTED } from '../modules/nf-core/hmmer/eslreformat/main'
 include { GUNZIP                                } from '../modules/nf-core/gunzip/main'
-include { SEQTK_SUBSEQ                          } from '../modules/nf-core/seqtk/subseq/main'
+include { SEQTK_SUBSEQ as SUBSEQ_SETS           } from '../modules/nf-core/seqtk/subseq/main'
+include { SEQTK_SUBSEQ as SUBSEQ_N1SPREPS       } from '../modules/nf-core/seqtk/subseq/main'
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS           } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -164,18 +165,41 @@ workflow PHYLOMARKERCHECK {
     )
     ch_versions = ch_versions.mix(EXTRACTSEQNAMES.out.versions) 
 
-    SEQTK_SUBSEQ(
+    SUBSEQ_SETS(
         ch_correct_sequences.first().map { it[1] },
         EXTRACTSEQNAMES.out.seqnames
     )
-    ch_versions = ch_versions.mix(SEQTK_SUBSEQ.out.versions)
+    ch_versions = ch_versions.mix(SUBSEQ_SETS.out.versions)
 
     // 6. Subset and reoptimize tree
     if ( params.phylogeny ) {
-        SUBSETTREE(EXTRACTSEQNAMES.out.seqnames.filter { it[0].n == '1' }, ch_phylogeny.first())
+        // Construct a channel with names of sequences for species representatives, to use to subset
+        // the n1 set for the phylogeny.
+        ch_gtdb_metadata
+            .splitCsv(header: true, sep: '\t')
+            .map { [ it.accession ] }
+            .join(
+                EXTRACTSEQNAMES.out.seqnames
+                    .filter { it[0].n == '1' }
+                    .map { it[1] }
+                    .splitCsv(header: ['seqname'])
+                    .map { [ it.seqname - ~/~.*/, it.seqname ] }
+            )
+            .map { it[1] }
+            .collectFile(name: "${params.markername}.n1sprep.tsv", newLine: true)
+            .map { [ [ id: "${params.markername}-sprep" ], it ] }
+            .set { ch_sprep_names }
+        
+        SUBSETTREE(ch_sprep_names, ch_phylogeny.first())
         ch_versions = ch_versions.mix(SUBSETTREE.out.versions)
 
-        ALIGNSELECTED(SEQTK_SUBSEQ.out.sequences.filter { it[0].n == '1' }, ch_hmm.first())
+        SUBSEQ_N1SPREPS(
+            ch_correct_sequences.first().map { it[1] },
+            ch_sprep_names
+        )
+        ch_versions = ch_versions.mix(SUBSEQ_N1SPREPS.out.versions)
+
+        ALIGNSELECTED(SUBSEQ_N1SPREPS.out.sequences, ch_hmm.first())
         ch_versions = ch_versions.mix(ALIGNSELECTED.out.versions)
 
         MASKSELECTED(ALIGNSELECTED.out.sthlm.map { [ it[0], it[1], [], [], [], [], [], [] ] }, [])
@@ -189,7 +213,6 @@ workflow PHYLOMARKERCHECK {
 
         GTDBFIXNAMES.out.fasta
             .join(SUBSETTREE.out.phylo)
-            //.map { [ [ it[0] ], it[1], it[3] ] }
             .set { ch_aln_tree }
 
         IQTREE_OPTIMIZE(ch_aln_tree)
