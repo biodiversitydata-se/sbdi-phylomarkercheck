@@ -60,6 +60,7 @@ include { FILTERTAXONOMY                        } from '../modules/local/filtert
 include { SATIVA                                } from '../modules/local/sativa'
 include { EMITCORRECT                           } from '../modules/local/emitcorrect.nf'
 include { EXTRACTSEQNAMES                       } from '../modules/local/extractseqnames'
+include { FINALFASTAS                           } from '../modules/local/finalfastas'
 include { UNIQSEQUENCES                         } from '../modules/local/uniqsequences'
 include { SUBSETTREE                            } from '../modules/local/subsettree'
 include { GTDBFIXNAMES                          } from '../modules/local/gtdbfixnames'
@@ -173,6 +174,9 @@ workflow PHYLOMARKERCHECK {
         EXTRACTSEQNAMES.out.seqnames
     )
     ch_versions = ch_versions.mix(SUBSEQ_SETS.out.versions)
+
+    FINALFASTAS(SUBSEQ_SETS.out.sequences)
+    ch_versions = ch_versions.mix(FINALFASTAS.out.versions)
 
     // 6. Subset and reoptimize tree
     if ( params.phylogeny ) {
