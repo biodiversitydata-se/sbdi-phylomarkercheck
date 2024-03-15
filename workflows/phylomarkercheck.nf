@@ -180,7 +180,7 @@ workflow PHYLOMARKERCHECK {
 
     // 6. Subset and reoptimize tree
     if ( params.phylogeny ) {
-        // Construct a channel with names of sequences for species representatives, to use to subset
+        // Construct a channel with names of sequences for species representatives. Will be used to subset
         // the n1 set for the phylogeny.
         ch_gtdb_metadata
             .splitCsv(header: true, sep: '\t')
@@ -194,16 +194,24 @@ workflow PHYLOMARKERCHECK {
                     .map { [ it.seqname - ~/~.*/, it.seqname ] }
             )
             .map { it[1] }
-            .collectFile(name: "${params.markername}.n1sprep.tsv", newLine: true)
+            .collectFile(name: "${params.markername}.n1sprep.txt", newLine: true)
             .map { [ [ id: "${params.markername}-sprep" ], it ] }
             .set { ch_sprep_names }
+
+        // Write a taxonomy file to use in phyloplacement
+        ch_sprep_names
+            .map { it[1] }
+            .splitCsv(header: ['seqname', 'taxonomy', 'sp'], sep: ' ')
+            .map { "${it.seqname - ~/~.*/}\t$it.taxonomy $it.sp" }
+            .collectFile(name: "${params.markername}-sprep.taxonomy.tsv", newLine: true, storeDir: "${params.outdir}/iqtree")
 
         // We need a file with non-gappy sequences, i.e. aligned on the correct strand
         CAT_CAT(
             FILTERGAPPY.out.fasta
                 .map { it[1] }
                 .collect()
-                .map{ [ [ id: "${params.markername}.correct" ], it ] })
+                .map{ [ [ id: "${params.markername}.correct" ], it ] }
+        )
         ch_versions = ch_versions.mix(CAT_CAT.out.versions)
 
         SUBSEQ_N1SPREPS(
