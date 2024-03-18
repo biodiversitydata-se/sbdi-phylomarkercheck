@@ -1,0 +1,27 @@
+Changes in module 'nf-core/seqtk/subseq'
+--- modules/nf-core/seqtk/subseq/main.nf
++++ modules/nf-core/seqtk/subseq/main.nf
+@@ -1,5 +1,5 @@
+ process SEQTK_SUBSEQ {
+-    tag "$sequences"
++    tag "$meta.id"
+     label 'process_single'
+ 
+     conda "${moduleDir}/environment.yml"
+@@ -9,11 +9,11 @@
+ 
+     input:
+     path sequences
+-    path filter_list
++    tuple val(meta), path(filter_list)
+ 
+     output:
+-    path "*.gz"         , emit: sequences
+-    path "versions.yml" , emit: versions
++    tuple val(meta), path("*.gz"), emit: sequences
++    path "versions.yml"          , emit: versions
+ 
+     when:
+     task.ext.when == null || task.ext.when
+
+************************************************************
