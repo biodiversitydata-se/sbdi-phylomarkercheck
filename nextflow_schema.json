@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "https://raw.githubusercontent.com/nf-core/phylomarkercheck/master/nextflow_schema.json",
-    "title": "nf-core/phylomarkercheck pipeline parameters",
+    "$id": "https://raw.githubusercontent.com/biodiversity-se/sbdi-phylomarkercheck/master/nextflow_schema.json",
+    "title": "sbdi-phylomarkercheck pipeline parameters",
     "description": "Checks the phylogenetic signal in a set of sequences and outputs those that pass the check.",
     "type": "object",
     "definitions": {

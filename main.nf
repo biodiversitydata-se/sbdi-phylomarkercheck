@@ -1,9 +1,9 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf-core/phylomarkercheck
+    biodiversity-se/sbdi-phylomarkercheck
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/nf-core/phylomarkercheck
+    Github : https://github.com/biodiversity-se/sbdi-phylomarkercheck
     Website: https://nf-co.re/phylomarkercheck
     Slack  : https://nfcore.slack.com/channels/phylomarkercheck
 ----------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ WorkflowMain.initialise(workflow, params, log)
 include { PHYLOMARKERCHECK } from './workflows/phylomarkercheck'
 
 //
-// WORKFLOW: Run main nf-core/phylomarkercheck analysis pipeline
+// WORKFLOW: Run main biodiversity-se/sbdi-phylomarkercheck analysis pipeline
 //
 workflow NFCORE_PHYLOMARKERCHECK {
     PHYLOMARKERCHECK ()
@@ -64,7 +64,6 @@ workflow NFCORE_PHYLOMARKERCHECK {
 
 //
 // WORKFLOW: Execute a single named workflow for the pipeline
-// See: https://github.com/nf-core/rnaseq/issues/619
 //
 workflow {
     NFCORE_PHYLOMARKERCHECK ()
