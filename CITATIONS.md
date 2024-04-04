@@ -10,9 +10,33 @@
 
 ## Pipeline tools
 
+- [biopython](https://academic.oup.com/bioinformatics/article/25/11/1422/330687)
+
+  > Cock, Peter J. A., Tiago Antao, Jeffrey T. Chang, Brad A. Chapman, Cymon J. Cox, Andrew Dalke, Iddo Friedberg, et al. 2009. “Biopython: Freely Available Python Tools for Computational Molecular Biology and Bioinformatics.” Bioinformatics 25 (11): 1422–23. https://doi.org/10.1093/bioinformatics/btp163.
+
+- [HMMER](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1002195)
+
+  > Eddy, Sean R. 2011. “Accelerated Profile HMM Searches.” PLoS Comput Biol 7 (10): e1002195. https://doi.org/10.1371/journal.pcbi.1002195.
+ 
 - [MultiQC](https://pubmed.ncbi.nlm.nih.gov/27312411/)
 
   > Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics. 2016 Oct 1;32(19):3047-8. doi: 10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PubMed PMID: 27312411; PubMed Central PMCID: PMC5039924.
+
+- [IQTREE](https://academic.oup.com/mbe/article/32/1/268/2925592)
+
+  > Nguyen, Lam-Tung, Heiko A. Schmidt, Arndt von Haeseler, and Bui Quang Minh. 2015. “IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies.” Molecular Biology and Evolution 32 (1): 268–74. https://doi.org/10.1093/molbev/msu300.
+
+- [SeqKit](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0163962)
+
+  > Shen, Wei, Shuai Le, Yan Li, and Fuquan Hu. 2016. “SeqKit: A Cross-Platform and Ultrafast Toolkit for FASTA/Q File Manipulation.” PLOS ONE 11 (10): e0163962. https://doi.org/10.1371/journal.pone.0163962.
+
+- [seqtk](https://github.com/lh3/seqtk)
+
+  > Not published.
+
+- [EMBOSS](http://emboss.open-bio.org/)
+
+  > Rice, P., I. Longden, and A. Bleasby. 2000. “EMBOSS: The European Molecular Biology Open Software Suite.” Trends in Genetics: TIG 16 (6): 276–77. https://doi.org/10.1016/s0168-9525(00)02024-2.
 
 ## Software packaging/containerisation tools
 

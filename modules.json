@@ -1,6 +1,6 @@
 {
-    "name": "nf-core/phylomarkercheck",
-    "homePage": "https://github.com/nf-core/phylomarkercheck",
+    "name": "sbdi-phylomarkercheck",
+    "homePage": "https://github.com/biodiversitydata-se/sbdi-phylomarkercheck",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {
