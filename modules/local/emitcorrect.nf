@@ -52,7 +52,7 @@ process EMITCORRECT {
         anti_join(misplaced, by = join_by(seqid)) %>%
         inner_join(metadata, by = join_by(accession)) %>%
         group_by(species) %>%
-        slice_max(order_by = quality, n = ${meta.n}) %>%
+        slice_max(order_by = quality, n = ${meta.n}, with_ties = FALSE) %>%
         write_tsv("${prefix}.correct.tsv.gz")
 
     writeLines(
