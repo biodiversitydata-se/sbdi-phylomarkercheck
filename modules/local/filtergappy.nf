@@ -41,17 +41,18 @@ process FILTERGAPPY {
         # Remove sequences with too many gaps
         filter(str_remove_all(sequence, '-') %>% str_length() > str_length(sequence) * drop_cutoff) %>%
         mutate(genome = str_remove(seqname, '~.*')) %>%
-        # Keep the longest sequence, i.e. fewest gaps, from each genome
-        group_by(genome) %>%
-        arrange(str_remove_all(sequence, '-') %>% str_length() %>% desc()) %>%
-        filter(row_number() == 1) %>%
-        ungroup() %>%
-        # Select the 20 "best" sequences from each species, preferring GTDB representative genomes and longer sequences
         inner_join(m, by = 'genome') %>%
+        # Keep the longest sequence, i.e. fewest gaps, from each genome -- 5 for species representative genomes
+        group_by(genome) %>%
+        mutate(ngenes = ifelse(gtdb_representative == 't', 5, 1)) %>%
+        arrange(str_remove_all(sequence, '-') %>% str_length() %>% desc()) %>%
+        filter(row_number() <= ngenes) %>%
+        ungroup() %>%
+        # Select the 50 "best" sequences from each species, preferring GTDB representative genomes and longer sequences
         mutate(sortnum = ifelse(gtdb_representative == 't', 10, 1) * str_remove_all(sequence, '-') %>% str_length()) %>%
         group_by(species) %>%
         arrange(desc(sortnum)) %>%
-        filter(row_number() <= 20) %>%
+        filter(row_number() <= 50) %>%
         ungroup() %>%
         transmute(s = sprintf(">%s\\n%s", seqname, sequence)) %>%
         write.table('${prefix}.gapfiltered.fna', quote = FALSE, row.names = FALSE, col.names = FALSE)
