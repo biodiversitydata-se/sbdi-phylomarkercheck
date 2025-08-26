@@ -47,8 +47,8 @@ process FILTERGAPPY {
         mutate(
             ngenes = case_when(
                 ncbi_genome_category == 'derived from metagenome'  ~ 1,
-                ncbi_genome_category == 'derived from single cell' ~ 2,
-                ncbi_genome_category == 'none'                     ~ 5,
+                ncbi_genome_category == 'derived from single cell' ~ 1,
+                gtdb_representative == 't'                         ~ 5,
                 TRUE                                               ~ 1
             )
         ) %>%
