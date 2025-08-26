@@ -34,7 +34,7 @@ process FILTERGAPPY {
     s <- read.delim('$tsv', col.names = c('seqname', 'sequence'), sep = '\\t')
 
     m <- read.delim('$metadatatsv', sep = '\\t') %>%
-        transmute(genome = accession, gtdb_taxonomy = str_remove_all(gtdb_taxonomy, '[a-z]__'), genome_size, checkm_completeness, checkm_contamination, gtdb_representative) %>%
+        transmute(genome = accession, gtdb_taxonomy = str_remove_all(gtdb_taxonomy, '[a-z]__'), genome_size, checkm_completeness, checkm_contamination, gtdb_representative, ncbi_genome_category) %>%
         separate(gtdb_taxonomy, c('domain', 'phylum', 'class', 'order', 'family', 'genus', 'species'), sep = ';')
 
     s %>%
@@ -44,7 +44,14 @@ process FILTERGAPPY {
         inner_join(m, by = 'genome') %>%
         # Keep the longest sequence, i.e. fewest gaps, from each genome -- 5 for species representative genomes
         group_by(genome) %>%
-        mutate(ngenes = ifelse(gtdb_representative == 't', 5, 1)) %>%
+        mutate(
+            ngenes = case_when(
+                ncbi_genome_category == 'derived from metagenome'  ~ 1,
+                ncbi_genome_category == 'derived from single cell' ~ 2,
+                ncbi_genome_category == 'none'                     ~ 5,
+                TRUE                                               ~ 1
+            )
+        ) %>%
         arrange(str_remove_all(sequence, '-') %>% str_length() %>% desc()) %>%
         filter(row_number() <= ngenes) %>%
         ungroup() %>%
