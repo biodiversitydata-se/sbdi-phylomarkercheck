@@ -4,12 +4,14 @@ process FILTERGAPPY {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-tidyverse:1.2.1':
-        'biocontainers/r-tidyverse:1.2.1' }"
+        'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a0/a04c5424ce6fbf346430d99ae9f72d0bbb90e3a5cf4096df32fc1716f03973a4/data' :
+        'community.wave.seqera.io/library/r-base_r-data.table_r-dplyr_r-dtplyr_pruned:a6608bc81b0e6546'
+    }"
 
     input:
     tuple val(meta), path(tsv)
     path  metadatatsv
+    path  ncbi_genome_data
 
     output:
     tuple val(meta), path("*.gapfiltered.fna"), emit: fasta
@@ -21,6 +23,18 @@ process FILTERGAPPY {
     script:
     def args = task.ext.args ?: 1.0
     def prefix = task.ext.prefix ?: "${meta.id}"
+
+    def read_ncbi_genome_data = ""
+    if ( ncbi_genome_data ) {
+        read_ncbi_genome_data =
+        """
+        ncbi_genome_data = read_tsv(c('${ncbi_genome_data.join("','")}'), skip = 1) %>%
+            rename(ncbi_accession = `#assembly_accession`)
+        """
+    } else {
+        read_ncbi_genome_data = "ncbi_genome_data <- tibble(ncbi_accession = character(), excluded_from_refseq = character())"
+    }
+
     """
     #!/usr/bin/env Rscript
 
@@ -33,14 +47,16 @@ process FILTERGAPPY {
 
     s <- read.delim('$tsv', col.names = c('seqname', 'sequence'), sep = '\\t')
 
+    ${read_ncbi_genome_data}
+
     m <- read.delim('$metadatatsv', sep = '\\t') %>%
         transmute(
-            genome = accession, gtdb_taxonomy = str_remove_all(gtdb_taxonomy, '[a-z]__'),
-            genome_size, checkm_completeness, checkm_contamination, gtdb_representative,
-            ncbi_genome_category, ssu_silva_taxonomy
+            genome = accession, ncbi_accession = str_remove(genome, '^.._'), gtdb_taxonomy = str_remove_all(gtdb_taxonomy, '[a-z]__'),
+            genome_size, checkm_completeness, checkm_contamination, gtdb_representative, ncbi_genome_category, ssu_silva_taxonomy
         ) %>%
+        anti_join(ncbi_genome_data %>% filter(str_detect(excluded_from_refseq, 'contaminated')), by = join_by(ncbi_accession)) %>%
         separate(gtdb_taxonomy, c('domain', 'phylum', 'class', 'order', 'family', 'genus', 'species'), sep = ';', extra = 'drop') %>%
-        separate(ssu_silva_taxonomy, c('silva_domain', 'silva_phylum', 'silva_class', 'silva_order', 'silva_family', 'silva_genus', 'silva_species'), sep = ';', fill = 'right')
+        separate(ssu_silva_taxonomy, c('silva_domain', 'silva_phylum', 'silva_class', 'silva_order', 'silva_family', 'silva_genus', 'silva_species'), sep = ';', fill = 'right', extra = 'drop')
 
     s %>%
         # Remove sequences with too many gaps
@@ -70,6 +86,16 @@ process FILTERGAPPY {
         transmute(s = sprintf(">%s\\n%s", seqname, sequence)) %>%
         write.table('${prefix}.gapfiltered.fna', quote = FALSE, row.names = FALSE, col.names = FALSE)
 
-    writeLines(c("\\"${task.process}\\":", paste0("    R: ", paste0(R.Version()[c("major","minor")], collapse = ".")),paste0("    Tidyverse: ", packageVersion("tidyverse")) ), "versions.yml")
+    writeLines(
+        c(
+            "\\"${task.process}\\":",
+            paste0("    R: ", paste0(R.Version()[c("major","minor")], collapse = ".")),
+            paste0("    dplyr: ", packageVersion('dplyr')),
+            paste0("    readr: ", packageVersion('readr')),
+            paste0("    tidyr: ", packageVersion('tidyr')),
+            paste0("    stringr: ", packageVersion('stringr'))
+        ),
+        "versions.yml"
+    )
     """
 }

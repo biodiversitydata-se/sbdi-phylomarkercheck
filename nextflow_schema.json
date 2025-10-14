@@ -44,6 +44,13 @@
                     "description": "Path to a tsv file with taxonomy metadata containing: gtdb_taxonomy, checkm_completeness and checkm_contamination.",
                     "fa_icon": "far fa-file-code"
                 },
+                "ncbi_genome_data": {
+                    "type": "string",
+                    "pattern": "^\\S+\\.txt(,\\S+\\.txt)*$",
+                    "description": "Comma-separated list of paths to NCBI genome info file.",
+                    "default": "ftp://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/assembly_summary_genbank.txt,ftp://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/assembly_summary_refseq.txt",
+                    "fa_icon": "far fa-file-code"
+                },
                 "phylogeny": {
                     "type": "string",
                     "format": "file-path",
