@@ -33,6 +33,8 @@ if ( params.phylogeny ) {
         .concat(Channel.of(1))
         .unique()
 }
+
+ch_ncbi_genome_data = Channel.empty()
 if ( params.ncbi_genome_data ) {
     ch_ncbi_genome_data = Channel.of(params.ncbi_genome_data.split(','))
         .map { f -> file(f) }
