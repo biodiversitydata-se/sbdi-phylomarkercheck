@@ -75,7 +75,7 @@ process FILTERGAPPY {
         ) %>%
         mutate(multiplier = ifelse(order != silva_order & silva_order != 'Incertae Sedis' & ! is.na(silva_order), multiplier / 3, multiplier)) %>%
         arrange(str_remove_all(sequence, '-') %>% str_length() %>% desc()) %>%
-        filter(row_number() <= 50) %>%
+        filter(row_number() <= 30) %>%
         ungroup() %>%
 #        # Select the 50 "best" sequences from each species, preferring GTDB representative genomes and longer sequences
 #        mutate(sortnum = ifelse(gtdb_representative == 't', 10, 1) * str_remove_all(sequence, '-') %>% str_length()) %>%
