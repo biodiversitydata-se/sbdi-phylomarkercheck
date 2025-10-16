@@ -58,24 +58,39 @@ process FILTERGAPPY {
         separate(gtdb_taxonomy, c('domain', 'phylum', 'class', 'order', 'family', 'genus', 'species'), sep = ';', extra = 'drop') %>%
         separate(ssu_silva_taxonomy, c('silva_domain', 'silva_phylum', 'silva_class', 'silva_order', 'silva_family', 'silva_genus', 'silva_species'), sep = ';', fill = 'right', extra = 'drop')
 
+    N_PER_SPECIES = 30
     s %>%
         # Remove sequences with too many gaps
         filter(str_remove_all(sequence, '-') %>% str_length() > str_length(sequence) * drop_cutoff) %>%
         mutate(genome = str_remove(seqname, '~.*')) %>%
         inner_join(m, by = 'genome') %>%
-        # Keep the longest sequence, i.e. fewest gaps, from each genome -- 5 for species representative genomes
-        group_by(species) %>%
+        # We're selecting genes on two criteria: Number per genome (3 for species-representatives, 1 for others) and number per species based on assumed quality (see comments below)
         mutate(
-            multiplier = case_when(
+            # ngenes is used to limit the number of sequences to pick from each genome
+            ngenes = case_when(
                 ncbi_genome_category == 'derived from metagenome'  ~ 1,
                 ncbi_genome_category == 'derived from single cell' ~ 1,
                 gtdb_representative == 't'                         ~ 3,
                 TRUE                                               ~ 1
-            )
+            ),
+            # multiplier is used to weigh each genome within the species
+            multiplier = ngenes
         ) %>%
+        # Lower the multiplier for mismatches between GTDB order and Silva SSU order, unless the Silva order is NA or 'Incertae Sedis'
+        # In cases where the GTDB and Silva taxonomies match, this is fine, in cases where they don't it's affecting the whole species equally and this will have no effect
         mutate(multiplier = ifelse(order != silva_order & silva_order != 'Incertae Sedis' & ! is.na(silva_order), multiplier / 3, multiplier)) %>%
-        arrange(str_remove_all(sequence, '-') %>% str_length() %>% desc()) %>%
-        filter(row_number() <= 30) %>%
+        # Lower the multiplier for more contaminated genomes (even if this is measured with protein coding genes it might say something about the general quality)
+        mutate(multiplier = multiplier * checkm_contamination / 100) %>%
+        mutate(seq_length = str_remove_all(sequence, '-') %>% str_length()) %>%
+        # Select the appropriate number of genes per genome, preferring longer sequences
+        group_by(genome) %>%
+        arrange(desc(seq_length)) %>%
+        filter(row_number() <= ngenes) %>%
+        ungroup() %>%
+        # Select the top N_PER_SPECIES
+        group_by(species) %>%
+        arrange(desc(seq_length * multiplier)) %>%
+        filter(row_number() <= N_PER_SPECIES) %>%
         ungroup() %>%
 #        # Select the 50 "best" sequences from each species, preferring GTDB representative genomes and longer sequences
 #        mutate(sortnum = ifelse(gtdb_representative == 't', 10, 1) * str_remove_all(sequence, '-') %>% str_length()) %>%
