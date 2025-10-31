@@ -34,6 +34,12 @@ if ( params.phylogeny ) {
         .unique()
 }
 
+ch_ncbi_genome_data = Channel.empty()
+if ( params.ncbi_genome_data ) {
+    ch_ncbi_genome_data = Channel.of(params.ncbi_genome_data.split(','))
+        .map { f -> file(f) }
+}
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     CONFIG FILES
@@ -140,7 +146,7 @@ workflow PHYLOMARKERCHECK {
     ALIGNED2TSV(REFORMATINPUT.out.seqreformated)
     ch_versions = ch_versions.mix(ALIGNED2TSV.out.versions)
 
-    FILTERGAPPY(ALIGNED2TSV.out.tsv, ch_gtdb_metadata.first())
+    FILTERGAPPY(ALIGNED2TSV.out.tsv, ch_gtdb_metadata.first(), ch_ncbi_genome_data.collect())
     ch_versions = ch_versions.mix(FILTERGAPPY.out.versions)
 
     // 4. Call sativa with the taxonomy and each filtered alignment
